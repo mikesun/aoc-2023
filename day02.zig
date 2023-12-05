@@ -36,10 +36,7 @@ fn partOne() !void {
                     var color = b_it.rest();
                     if ((std.mem.eql(u8, color, "red") and count > 12) or
                         (std.mem.eql(u8, color, "green") and count > 13) or
-                        (std.mem.eql(u8, color, "blue") and count > 14))
-                    {
-                        break :game;
-                    }
+                        (std.mem.eql(u8, color, "blue") and count > 14)) break :game;
                 }
             }
             possible_id_sum += game_id;
