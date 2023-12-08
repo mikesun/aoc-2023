@@ -2,7 +2,6 @@ const std = @import("std");
 const expect = std.testing.expect;
 
 const input = "day05.input";
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
 const Range = struct {
     source_start: usize,
@@ -19,17 +18,6 @@ const Range = struct {
     }
 };
 
-test "range" {
-    const r = Range{
-        .source_start = 98,
-        .target_start = 50,
-        .length = 2,
-    };
-    const source = 98;
-    const target = r.target(source);
-    try expect(target.? == 50);
-}
-
 const Map = struct {
     ranges: std.ArrayList(Range),
 
@@ -37,6 +25,10 @@ const Map = struct {
         return Map{
             .ranges = std.ArrayList(Range).init(allocator),
         };
+    }
+
+    fn deinit(self: *Map) void {
+        self.ranges.deinit();
     }
 
     fn target(self: *Map, source: usize) usize {
@@ -47,19 +39,21 @@ const Map = struct {
     }
 };
 
-fn partOne() !void {
+fn partOne(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
+    var line = std.ArrayList(u8).init(allocator);
     var reader = file.reader();
 
     // List of seeds
-    var seeds = std.ArrayList(usize).init(gpa.allocator());
-    defer seeds.deinit();
+    var seeds = std.ArrayList(usize).init(allocator);
     try reader.streamUntilDelimiter(line.writer(), '\n', null);
-    var it = std.mem.splitAny(u8, try line.toOwnedSlice(), ":");
+    var it = std.mem.splitAny(u8, line.items, ":");
     _ = it.first();
 
     var seeds_it = std.mem.splitAny(u8, std.mem.trim(u8, it.rest(), " "), " ");
@@ -69,8 +63,7 @@ fn partOne() !void {
     }
 
     // List of maps
-    var map_list = std.ArrayList(Map).init(gpa.allocator());
-    defer map_list.deinit();
+    var map_list = std.ArrayList(Map).init(allocator);
     var cur_map: ?Map = null;
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
@@ -104,7 +97,7 @@ fn partOne() !void {
         else |err| {
             _ = err catch {};
             if (cur_map) |m| try map_list.append(m);
-            cur_map = try Map.init(gpa.allocator());
+            cur_map = try Map.init(allocator);
         }
         line.clearRetainingCapacity();
     }
@@ -121,22 +114,25 @@ fn partOne() !void {
             lowest_location = x;
         }
     }
+
     std.debug.print("partOne: lowest_location={any}\n", .{lowest_location});
 }
 
-fn partTwo() !void {
+fn partTwo(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
+    var line = std.ArrayList(u8).init(allocator);
     var reader = file.reader();
 
     // List of ranges of seeds
-    var seeds = std.ArrayList([2]usize).init(gpa.allocator());
-    defer seeds.deinit();
+    var seeds = std.ArrayList([2]usize).init(allocator);
     try reader.streamUntilDelimiter(line.writer(), '\n', null);
-    var it = std.mem.splitAny(u8, try line.toOwnedSlice(), ":");
+    var it = std.mem.splitAny(u8, line.items, ":");
     _ = it.first();
 
     var seeds_it = std.mem.splitAny(u8, std.mem.trim(u8, it.rest(), " "), " ");
@@ -147,8 +143,7 @@ fn partTwo() !void {
     }
 
     // List of maps
-    var map_list = std.ArrayList(Map).init(gpa.allocator());
-    defer map_list.deinit();
+    var map_list = std.ArrayList(Map).init(allocator);
     var cur_map: ?Map = null;
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
@@ -182,7 +177,7 @@ fn partTwo() !void {
         else |err| {
             _ = err catch {};
             if (cur_map) |m| try map_list.append(m);
-            cur_map = try Map.init(gpa.allocator());
+            cur_map = try Map.init(allocator);
         }
         line.clearRetainingCapacity();
     }
@@ -202,10 +197,14 @@ fn partTwo() !void {
             }
         }
     }
+
     std.debug.print("partTwo: lowest_location={any}\n", .{lowest_location});
 }
 
-pub fn main() !void {
-    try partOne();
-    try partTwo();
+test "partOne" {
+    try partOne(std.testing.allocator);
+}
+
+test "partTwo" {
+    try partTwo(std.testing.allocator);
 }

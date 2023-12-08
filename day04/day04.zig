@@ -1,15 +1,16 @@
 const std = @import("std");
 
 const input = "day04.input";
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-fn partOne() !void {
+fn partOne(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
-
+    var line = std.ArrayList(u8).init(allocator);
     var points: u32 = 0;
     var reader = file.reader();
     while (true) {
@@ -22,7 +23,7 @@ fn partOne() !void {
         var sets_it = std.mem.splitAny(u8, line_it.rest(), "|");
 
         // Winning numbers
-        var winning = std.AutoHashMap(u32, bool).init(gpa.allocator());
+        var winning = std.AutoHashMap(u32, bool).init(allocator);
         defer winning.deinit();
         var w_it = std.mem.split(u8, std.mem.trim(u8, sets_it.first(), " "), " ");
         while (w_it.next()) |n| {
@@ -44,24 +45,25 @@ fn partOne() !void {
     std.debug.print("points={d}\n", .{points});
 }
 
-fn partTwo() !void {
+fn partTwo(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
+    var line = std.ArrayList(u8).init(allocator);
     var reader = file.reader();
 
     // Map of card_id:wins
-    var cards_wins = std.AutoHashMap(u32, u32).init(gpa.allocator());
-    defer cards_wins.deinit();
+    var cards_wins = std.AutoHashMap(u32, u32).init(allocator);
 
     // Map of cards:processed_count
-    var cards_processed = std.AutoHashMap(u32, u32).init(gpa.allocator());
+    var cards_processed = std.AutoHashMap(u32, u32).init(allocator);
 
     // List of cards to be processed
-    var copies_to_process = std.ArrayList(u32).init(gpa.allocator());
-    defer copies_to_process.deinit();
+    var copies_to_process = std.ArrayList(u32).init(allocator);
 
     // Process original cards
     while (true) {
@@ -79,7 +81,7 @@ fn partTwo() !void {
         var sets_it = std.mem.splitAny(u8, line_it.rest(), "|");
 
         // Winning numbers
-        var winning = std.AutoHashMap(u32, bool).init(gpa.allocator());
+        var winning = std.AutoHashMap(u32, bool).init(allocator);
         defer winning.deinit();
         var w_it = std.mem.split(u8, std.mem.trim(u8, sets_it.first(), " "), " ");
         while (w_it.next()) |n| {
@@ -126,7 +128,10 @@ fn partTwo() !void {
     std.debug.print("cards processed={d}\n", .{cards_count});
 }
 
-pub fn main() !void {
-    try partOne();
-    try partTwo();
+test "partOne" {
+    try partOne(std.testing.allocator);
+}
+
+test "partTwo" {
+    try partTwo(std.testing.allocator);
 }

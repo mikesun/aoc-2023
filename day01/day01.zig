@@ -1,15 +1,17 @@
 const std = @import("std");
+const expect = std.testing.expect;
 
 const input = "day01.input";
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-fn partOne() !void {
+fn partOne(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
-
+    var line = std.ArrayList(u8).init(allocator);
     var sum: u32 = 0;
     var reader = file.reader();
     while (true) {
@@ -33,20 +35,18 @@ fn partOne() !void {
     std.debug.print("part one sum={}\n", .{sum});
 }
 
-fn partTwo() !void {
-    var trie = try initTrie();
-    defer trie.deinit();
+fn partTwo(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
 
+    var trie = try initTrie(allocator);
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
-
+    var line = std.ArrayList(u8).init(allocator);
     var sum: u32 = 0;
     var reader = file.reader();
-
-    // Read line-by-line
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
             error.EndOfStream => break,
@@ -78,8 +78,8 @@ fn partTwo() !void {
     std.debug.print("part two sum={}\n", .{sum});
 }
 
-fn initTrie() !Trie {
-    var trie = Trie.init(gpa.allocator());
+fn initTrie(allocator: std.mem.Allocator) !Trie {
+    var trie = Trie.init(allocator);
     try trie.insert("one", 1);
     try trie.insert("two", 2);
     try trie.insert("three", 3);
@@ -92,9 +92,12 @@ fn initTrie() !Trie {
     return trie;
 }
 
-pub fn main() !void {
-    try partOne();
-    try partTwo();
+test "partOne" {
+    try partOne(std.testing.allocator);
+}
+
+test "partTwo" {
+    try partTwo(std.testing.allocator);
 }
 
 pub const Trie = struct {
@@ -156,8 +159,6 @@ const TrieNode = struct {
         self.children.deinit();
     }
 };
-
-const expect = std.testing.expect;
 
 test "trie" {
     var trie = Trie.init(std.testing.allocator);

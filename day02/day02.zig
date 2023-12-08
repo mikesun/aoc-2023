@@ -1,17 +1,17 @@
 const std = @import("std");
 
 const input = "day02.input";
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-fn partOne() !void {
+fn partOne(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
-
+    var line = std.ArrayList(u8).init(allocator);
     var possible_id_sum: u32 = 0;
-
     var reader = file.reader();
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
@@ -46,15 +46,16 @@ fn partOne() !void {
     std.debug.print("possible games ID sum={}\n", .{possible_id_sum});
 }
 
-fn partTwo() !void {
+fn partTwo(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
 
-    var line = std.ArrayList(u8).init(gpa.allocator());
-    defer line.deinit();
-
+    var line = std.ArrayList(u8).init(allocator);
     var powers_sum: u32 = 0;
-
     var reader = file.reader();
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
@@ -90,7 +91,10 @@ fn partTwo() !void {
     std.debug.print("powers sum={}\n", .{powers_sum});
 }
 
-pub fn main() !void {
-    try partOne();
-    try partTwo();
+test "partOne" {
+    try partOne(std.testing.allocator);
+}
+
+test "partTwo" {
+    try partTwo(std.testing.allocator);
 }

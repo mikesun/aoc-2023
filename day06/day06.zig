@@ -1,23 +1,26 @@
 const std = @import("std");
 
 const input = "day06.input";
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-fn partOne() !void {
+fn partOne(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
     var reader = file.reader();
 
     var doc = [2]std.ArrayList(usize){ undefined, undefined };
     for (0..2) |i| {
-        var line = std.ArrayList(u8).init(gpa.allocator());
+        var line = std.ArrayList(u8).init(allocator);
         try reader.streamUntilDelimiter(line.writer(), '\n', null);
 
         var it = std.mem.splitAny(u8, try line.toOwnedSlice(), ":");
         _ = it.first();
 
         var nums_it = std.mem.splitAny(u8, std.mem.trim(u8, it.rest(), " "), " ");
-        doc[i] = std.ArrayList(usize).init(gpa.allocator());
+        doc[i] = std.ArrayList(usize).init(allocator);
         while (nums_it.next()) |n| {
             var num = std.fmt.parseInt(usize, std.mem.trim(u8, n, " "), 10) catch continue;
             try doc[i].append(num);
@@ -43,21 +46,25 @@ fn distance(time: usize, speed: usize) usize {
     return (time - speed) * speed;
 }
 
-fn partTwo() !void {
+fn partTwo(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
     var reader = file.reader();
 
     var doc = [2]std.ArrayList(u8){ undefined, undefined };
     for (0..2) |i| {
-        var line = std.ArrayList(u8).init(gpa.allocator());
+        var line = std.ArrayList(u8).init(allocator);
         try reader.streamUntilDelimiter(line.writer(), '\n', null);
 
         var it = std.mem.splitAny(u8, try line.toOwnedSlice(), ":");
         _ = it.first();
 
         var nums_it = std.mem.splitAny(u8, std.mem.trim(u8, it.rest(), " "), " ");
-        doc[i] = std.ArrayList(u8).init(gpa.allocator());
+        doc[i] = std.ArrayList(u8).init(allocator);
         while (nums_it.next()) |n| {
             const num = std.mem.trim(u8, n, " ");
             if (num.len > 0) try doc[i].appendSlice(num);
@@ -74,7 +81,10 @@ fn partTwo() !void {
     std.debug.print("part_two ways={}\n", .{ways});
 }
 
-pub fn main() !void {
-    try partOne();
-    try partTwo();
+test "partOne" {
+    try partOne(std.testing.allocator);
+}
+
+test "partTwo" {
+    try partTwo(std.testing.allocator);
 }

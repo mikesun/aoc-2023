@@ -1,17 +1,20 @@
 const std = @import("std");
 
 const input = "day03.input";
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-fn partOne() !void {
+fn partOne(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
     var reader = file.reader();
 
     // Read file
-    var lines = std.ArrayList([]u8).init(gpa.allocator());
+    var lines = std.ArrayList([]u8).init(allocator);
     while (true) {
-        var row = std.ArrayList(u8).init(gpa.allocator());
+        var row = std.ArrayList(u8).init(allocator);
         reader.streamUntilDelimiter(row.writer(), '\n', null) catch |err| switch (err) {
             error.EndOfStream => break,
             else => return err,
@@ -79,18 +82,23 @@ fn partOne() !void {
             start = null;
         }
     }
+
     std.debug.print("sum={}\n", .{sum});
 }
 
-fn partTwo() !void {
+fn partTwo(base_allocator: std.mem.Allocator) !void {
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    var allocator = arena.allocator();
+
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
     var reader = file.reader();
 
     // Read file
-    var lines = std.ArrayList([]u8).init(gpa.allocator());
+    var lines = std.ArrayList([]u8).init(allocator);
     while (true) {
-        var row = std.ArrayList(u8).init(gpa.allocator());
+        var row = std.ArrayList(u8).init(allocator);
         reader.streamUntilDelimiter(row.writer(), '\n', null) catch |err| switch (err) {
             error.EndOfStream => break,
             else => return err,
@@ -100,7 +108,8 @@ fn partTwo() !void {
     var schematic: [][]u8 = try lines.toOwnedSlice();
 
     // Build part numbers map
-    var numberMap = std.AutoHashMap([2]usize, u32).init(gpa.allocator());
+    var numberMap = std.AutoHashMap([2]usize, u32).init(allocator);
+    defer numberMap.deinit();
     for (schematic, 0..) |cur, i| {
         var start: ?usize = null;
         for (cur, 0..) |c, j| {
@@ -193,10 +202,14 @@ fn partTwo() !void {
             }
         }
     }
+
     std.debug.print("gear_ratio_sum={d}\n", .{gear_ratio_sum});
 }
 
-pub fn main() !void {
-    try partOne();
-    try partTwo();
+test "partOne" {
+    try partOne(std.testing.allocator);
+}
+
+test "partTwo" {
+    try partTwo(std.testing.allocator);
 }
