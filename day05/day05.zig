@@ -182,23 +182,37 @@ fn partTwo(base_allocator: std.mem.Allocator) !void {
         line.clearRetainingCapacity();
     }
 
-    // For each seed, map to location via list of maps
-    var lowest_location: ?usize = null;
-    for (seeds.items) |seed_range| {
-        std.debug.print("seed_range={any}\n", .{seed_range});
-        for (0..seed_range[1]) |i| {
-            var x = seed_range[0] + i;
-            for (map_list.items) |m| {
-                var map = m;
-                x = map.target(x);
-            }
-            if (lowest_location == null or x < lowest_location.?) {
-                lowest_location = x;
-            }
-        }
+    // Spawn thread for each seed range, map to location via list of maps
+    var threads: []std.Thread = try allocator.alloc(std.Thread, seeds.items.len);
+    var lowest_locations: []usize = try allocator.alloc(usize, seeds.items.len);
+    @memset(lowest_locations, std.math.maxInt(usize));
+    for (seeds.items, 0..) |seed_range, i| {
+        threads[i] = try std.Thread.spawn(
+            .{},
+            struct {
+                fn location(
+                    srange: [2]usize,
+                    mlist: std.ArrayList(Map),
+                    lowest: *usize,
+                ) void {
+                    for (0..srange[1]) |j| {
+                        var x = srange[0] + j;
+                        for (mlist.items) |m| {
+                            var map = m;
+                            x = map.target(x);
+                        }
+                        if (x < lowest.*) lowest.* = x;
+                    }
+                }
+            }.location,
+            .{ seed_range, map_list, &lowest_locations[i] },
+        );
+        std.debug.print("thread: {any}\n", .{seed_range});
     }
+    for (threads) |t| t.join();
 
-    std.debug.print("partTwo: lowest_location={any}\n", .{lowest_location});
+    const lowest = std.mem.min(usize, lowest_locations);
+    std.debug.print("partTwo: lowest_location={any}\n", .{lowest});
 }
 
 test "partOne" {
