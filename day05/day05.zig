@@ -5,14 +5,14 @@ const input = "day05.input";
 
 const Range = struct {
     source_start: usize,
-    target_start: usize,
+    dest_start: usize,
     length: usize,
 
-    fn target(self: Range, source: usize) ?usize {
+    fn dest(self: Range, source: usize) ?usize {
         if (source >= self.source_start and
             source < self.source_start + self.length)
         {
-            return self.target_start + source - self.source_start;
+            return self.dest_start + source - self.source_start;
         }
         return null;
     }
@@ -31,9 +31,9 @@ const Map = struct {
         self.ranges.deinit();
     }
 
-    fn target(self: *Map, source: usize) usize {
+    fn dest(self: *Map, source: usize) usize {
         for (self.ranges.items) |r| {
-            if (r.target(source)) |t| return t;
+            if (r.dest(source)) |t| return t;
         }
         return source;
     }
@@ -42,7 +42,7 @@ const Map = struct {
 fn partOne(base_allocator: std.mem.Allocator) !void {
     var arena = std.heap.ArenaAllocator.init(base_allocator);
     defer arena.deinit();
-    var allocator = arena.allocator();
+    const allocator = arena.allocator();
 
     var file = try std.fs.cwd().openFile(input, .{});
     defer file.close();
@@ -58,7 +58,7 @@ fn partOne(base_allocator: std.mem.Allocator) !void {
 
     var seeds_it = std.mem.splitAny(u8, std.mem.trim(u8, it.rest(), " "), " ");
     while (seeds_it.next()) |s| {
-        var seed = std.fmt.parseInt(usize, s, 10) catch continue;
+        const seed = std.fmt.parseInt(usize, s, 10) catch continue;
         try seeds.append(seed);
     }
 
@@ -81,9 +81,9 @@ fn partOne(base_allocator: std.mem.Allocator) !void {
         var s = line_it.next();
 
         // Range
-        if (std.fmt.parseInt(usize, s.?, 10)) |target| {
+        if (std.fmt.parseInt(usize, s.?, 10)) |dest| {
             var r = Range{
-                .target_start = target,
+                .dest_start = dest,
                 .source_start = undefined,
                 .length = undefined,
             };
@@ -108,7 +108,7 @@ fn partOne(base_allocator: std.mem.Allocator) !void {
         var x = seed;
         for (map_list.items) |m| {
             var map = m;
-            x = map.target(x);
+            x = map.dest(x);
         }
         if (lowest_location == null or x < lowest_location.?) {
             lowest_location = x;
@@ -137,8 +137,8 @@ fn partTwo(base_allocator: std.mem.Allocator) !void {
 
     var seeds_it = std.mem.splitAny(u8, std.mem.trim(u8, it.rest(), " "), " ");
     while (seeds_it.next()) |s| {
-        var start = std.fmt.parseInt(usize, s, 10) catch continue;
-        var length = std.fmt.parseInt(usize, seeds_it.next().?, 10) catch continue;
+        const start = std.fmt.parseInt(usize, s, 10) catch continue;
+        const length = std.fmt.parseInt(usize, seeds_it.next().?, 10) catch continue;
         try seeds.append([2]usize{ start, length });
     }
 
@@ -161,9 +161,9 @@ fn partTwo(base_allocator: std.mem.Allocator) !void {
         var s = line_it.next();
 
         // Range
-        if (std.fmt.parseInt(usize, s.?, 10)) |target| {
+        if (std.fmt.parseInt(usize, s.?, 10)) |dest| {
             var r = Range{
-                .target_start = target,
+                .dest_start = dest,
                 .source_start = undefined,
                 .length = undefined,
             };
@@ -182,6 +182,7 @@ fn partTwo(base_allocator: std.mem.Allocator) !void {
         line.clearRetainingCapacity();
     }
 
+    // Brute force solution.
     // Spawn thread for each seed range, map to location via list of maps
     var threads: []std.Thread = try allocator.alloc(std.Thread, seeds.items.len);
     var lowest_locations: []usize = try allocator.alloc(usize, seeds.items.len);
@@ -199,7 +200,7 @@ fn partTwo(base_allocator: std.mem.Allocator) !void {
                         var x = srange[0] + j;
                         for (mlist.items) |m| {
                             var map = m;
-                            x = map.target(x);
+                            x = map.dest(x);
                         }
                         if (x < lowest.*) lowest.* = x;
                     }
