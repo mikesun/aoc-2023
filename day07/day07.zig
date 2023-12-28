@@ -8,6 +8,10 @@ const input = "test.input";
 const Hand = struct {
     cards: []const u8,
     bid: u32,
+
+    pub fn lessThan(_: void, a: Hand, b: Hand) bool {
+        return a.bid < b.bid;
+    }
 };
 
 fn partOne(base_allocator: std.mem.Allocator) !void {
@@ -21,7 +25,8 @@ fn partOne(base_allocator: std.mem.Allocator) !void {
     var line = std.ArrayList(u8).init(allocator);
     var reader = file.reader();
 
-    var hands = std.ArrayList(Hand).init(allocator);
+    // Parse list of hands+bids
+    var unsorted_hands = std.ArrayList(Hand).init(allocator);
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
             error.EndOfStream => break,
@@ -35,9 +40,13 @@ fn partOne(base_allocator: std.mem.Allocator) !void {
             .cards = it.first(),
             .bid = try std.fmt.parseInt(u32, it.rest(), 10),
         };
-        try hands.append(h);
-        print("{any}\n", .{h});
+        try unsorted_hands.append(h);
     }
+
+    // Sort hands
+    const hands = try unsorted_hands.toOwnedSlice();
+    std.mem.sort(Hand, hands, {}, Hand.lessThan);
+    print("{any}\n", .{hands});
 }
 
 test "partOne" {
