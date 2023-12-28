@@ -5,9 +5,20 @@ const expect = std.testing.expect;
 
 const input = "test.input";
 
+const HandType = enum {
+    five_of_a_kind,
+    four_of_a_kind,
+    full_house,
+    three_of_a_kind,
+    two_pair,
+    one_pair,
+    high_card,
+};
+
 const Hand = struct {
     cards: []const u8,
     bid: u32,
+    type: HandType,
 
     pub fn lessThan(_: void, a: Hand, b: Hand) bool {
         return a.bid < b.bid;
@@ -25,7 +36,7 @@ fn partOne(base_allocator: std.mem.Allocator) !void {
     var line = std.ArrayList(u8).init(allocator);
     var reader = file.reader();
 
-    // Parse list of hands+bids
+    // Parse list of hands
     var unsorted_hands = std.ArrayList(Hand).init(allocator);
     while (true) {
         reader.streamUntilDelimiter(line.writer(), '\n', null) catch |err| switch (err) {
